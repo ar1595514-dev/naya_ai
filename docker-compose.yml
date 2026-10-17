@@ -1,0 +1,47 @@
+# NyayaAI local development services.
+#
+# NOTE: For the fastest local start you do NOT need Docker. The default
+# development configuration uses SQLite + a DB-backed job queue, so
+# `npm run db:push && npm run dev` is enough.
+#
+# This compose file brings up the production-shaped dependencies
+# (PostgreSQL with pgvector, Redis) for realistic testing.
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: nyayaai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nyayaai
+      POSTGRES_PASSWORD: nyayaai_dev_password
+      POSTGRES_DB: nyayaai
+    ports:
+      - "5432:5432"
+    volumes:
+      - nyayaai_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nyayaai -d nyayaai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: nyayaai-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - nyayaai_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  nyayaai_pgdata:
+  nyayaai_redisdata:
